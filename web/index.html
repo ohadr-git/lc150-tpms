@@ -463,7 +463,9 @@
         grid.appendChild(card);
       }
 
-      if (targetProfileId) refreshProfileHub();
+      if (targetProfileId && document.getElementById("modal-profile-hub").classList.contains("active")) {
+        refreshProfileHub(false);
+      }
     }
 
     // MAIN SCREEN READ-ONLY SENSOR INSPECTOR
@@ -482,12 +484,12 @@
     // PROFILE HUB LOGIC (All mutating sensor actions live here)
     function openProfileHub(pId) {
       targetProfileId = pId;
-      refreshProfileHub();
+      refreshProfileHub(true);
       closeModals();
       document.getElementById("modal-profile-hub").classList.add("active");
     }
 
-    function refreshProfileHub() {
+    function refreshProfileHub(updateInputs = false) {
       if (!activeData || !activeData.profiles) return;
       const prof = activeData.profiles.find(p => p.id === targetProfileId);
       if (!prof) return;
@@ -524,11 +526,13 @@
         sList.appendChild(item);
       });
 
-      // Thresholds Inputs
-      document.getElementById("hub-th-target").value = prof.thresholds.target_psi || 35;
-      document.getElementById("hub-th-low").value = prof.thresholds.highway_low_psi || 28;
-      document.getElementById("hub-th-offroad").value = prof.thresholds.offroad_target_psi || 18;
-      document.getElementById("hub-th-floor").value = prof.thresholds.trail_min_safe_psi || 12;
+      // Thresholds Inputs (Only update when explicitly opened or saved, never clobber during active user edits)
+      if (updateInputs) {
+        document.getElementById("hub-th-target").value = prof.thresholds.target_psi ?? 35;
+        document.getElementById("hub-th-low").value = prof.thresholds.highway_low_psi ?? 28;
+        document.getElementById("hub-th-offroad").value = prof.thresholds.offroad_target_psi ?? 18;
+        document.getElementById("hub-th-floor").value = prof.thresholds.trail_min_safe_psi ?? 12;
+      }
 
       // Wizard Trigger
       document.getElementById("hub-btn-wizard").onclick = () => {
@@ -593,17 +597,47 @@
 
     // THRESHOLDS SAVE ACTION
     document.getElementById("hub-btn-save-thresholds").onclick = () => {
+      const target = parseFloat(document.getElementById("hub-th-target").value);
+      const low = parseFloat(document.getElementById("hub-th-low").value);
+      const offroad = parseFloat(document.getElementById("hub-th-offroad").value);
+      const floor = parseFloat(document.getElementById("hub-th-floor").value);
+
+      if (isNaN(target) || isNaN(low) || isNaN(offroad) || isNaN(floor)) {
+        alert("Please enter valid numbers for all threshold fields.");
+        return;
+      }
+
       const payload = {
         id: targetProfileId,
         thresholds: {
-          target_psi: parseFloat(document.getElementById("hub-th-target").value),
-          highway_low_psi: parseFloat(document.getElementById("hub-th-low").value),
-          offroad_target_psi: parseFloat(document.getElementById("hub-th-offroad").value),
-          trail_min_safe_psi: parseFloat(document.getElementById("hub-th-floor").value)
+          target_psi: target,
+          highway_check_psi: Number((target * 0.9).toFixed(1)),
+          highway_low_psi: low,
+          offroad_target_psi: offroad,
+          trail_min_safe_psi: floor
         }
       };
+
+      // Optimistically update local activeData so any immediate re-render does not revert
+      if (activeData && activeData.profiles) {
+        const p = activeData.profiles.find(x => x.id === targetProfileId);
+        if (p && p.thresholds) {
+          Object.assign(p.thresholds, payload.thresholds);
+        }
+      }
+
       sendCmd(`PROFILE:THRESHOLDS:${JSON.stringify(payload)}`);
-      alert("Thresholds committed to profile flash.");
+      
+      const btn = document.getElementById("hub-btn-save-thresholds");
+      const origText = btn.textContent;
+      btn.textContent = "SAVED ✓";
+      btn.style.background = "var(--ok)";
+      btn.style.color = "#000";
+      setTimeout(() => {
+        btn.textContent = origText;
+        btn.style.background = "";
+        btn.style.color = "";
+      }, 1500);
     };
 
     // WIZARD CONTROLS
