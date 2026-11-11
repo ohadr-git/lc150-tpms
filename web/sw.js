@@ -1,10 +1,13 @@
-const CACHE_NAME = "tpms-v1.1";
-const ASSETS = [
+const CACHE_NAME = "tpms-v1.2";
+const CORE_ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
   "./assets/icon-192.png",
-  "./assets/icon-512.png",
+  "./assets/icon-512.png"
+];
+
+const OPTIONAL_ASSETS = [
   "./assets/lc150_2015.svg",
   "./assets/sedan.svg",
   "./assets/motocross.svg",
@@ -13,7 +16,16 @@ const ASSETS = [
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await cache.addAll(CORE_ASSETS);
+      for (const file of OPTIONAL_ASSETS) {
+        try {
+          await cache.add(file);
+        } catch (err) {
+          console.warn("Optional asset skipped:", file);
+        }
+      }
+    })
   );
   self.skipWaiting();
 });
