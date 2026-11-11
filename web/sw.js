@@ -1,8 +1,10 @@
-const CACHE_NAME = "tpms-v1.0";
+const CACHE_NAME = "tpms-v1.1";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
+  "./assets/icon-192.png",
+  "./assets/icon-512.png",
   "./assets/lc150_2015.svg",
   "./assets/sedan.svg",
   "./assets/motocross.svg",
@@ -25,7 +27,6 @@ self.addEventListener("activate", (e) => {
   self.clients.claim();
 });
 
-// Cache-First Strategy: Never fail if offline
 self.addEventListener("fetch", (e) => {
   e.respondWith(
     caches.match(e.request).then((cached) => cached || fetch(e.request))
