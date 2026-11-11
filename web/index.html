@@ -12,9 +12,10 @@
       --card-bg: #141923;
       --card-border: #232d3f;
       --text-main: #ffffff;
-      --text-muted: #718096;
+      --text-muted: #8896ab;
       --ok: #22c55e;
       --offroad: #00b4ff;
+      --warn: #eab308;
       --alert: #ef4444;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -23,139 +24,280 @@
       background: var(--bg);
       color: var(--text-main);
       height: 100dvh;
-      overflow-x: hidden;
-      overflow-y: auto;
+      overflow: hidden;
     }
 
     body { display: flex; flex-direction: column; justify-content: space-between; }
 
+    /* HEADER */
     header {
-      background: var(--card-bg); height: 48px; min-height: 48px; display: flex;
-      align-items: center; justify-content: space-between; padding: 0 16px;
+      background: var(--card-bg); height: 50px; min-height: 50px; display: flex;
+      align-items: center; justify-content: space-between; padding: 0 14px;
       border-bottom: 1px solid var(--card-border); flex-shrink: 0;
     }
-    .brand { font-size: 13px; font-weight: 800; }
-    .status-badge { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; }
+    .brand-title { font-size: 13px; font-weight: 800; letter-spacing: 0.5px; }
+    .header-pills { display: flex; gap: 8px; align-items: center; }
+    .mode-pill {
+      font-size: 10px; font-weight: 800; padding: 4px 8px; border-radius: 6px;
+      background: #1e293b; color: var(--text-muted); cursor: pointer; border: 1px solid var(--card-border);
+    }
+    .mode-pill.offroad { background: rgba(0, 180, 255, 0.2); color: var(--offroad); border-color: var(--offroad); }
+    .status-badge { font-size: 10px; font-weight: 800; padding: 4px 8px; border-radius: 6px; }
     .status-connected { background: rgba(34, 197, 94, 0.2); color: var(--ok); }
     .status-disconnected { background: rgba(239, 68, 68, 0.2); color: var(--alert); }
 
-    .main-grid {
-      flex: 1; display: grid; grid-template-columns: 1fr 85px 1fr; grid-template-rows: 1fr 1fr auto;
-      gap: 8px; padding: 10px; max-width: 480px; margin: 0 auto; width: 100%; align-items: center; min-height: 0;
+    /* VIEWPORT CONTAINER */
+    #viewport-container {
+      flex: 1; position: relative; width: 100%; max-width: 500px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: center; padding: 10px;
     }
-    
+
+    /* CHASSIS WIREFRAME */
+    #chassis-img {
+      position: absolute; max-height: 240px; max-width: 140px; width: auto; height: auto;
+      object-fit: contain; z-index: 1; pointer-events: none;
+    }
+
+    /* DYNAMIC LAYOUT GRIDS */
+    .grid-canvas {
+      position: relative; z-index: 2; width: 100%; height: 100%;
+      display: grid; gap: 10px; align-items: center;
+    }
+
+    /* 5-WHEEL (LC150) */
+    .layout-5W {
+      grid-template-columns: 1fr 100px 1fr;
+      grid-template-rows: 1fr 1fr 75px;
+    }
+    .layout-5W #card-FL { grid-column: 1; grid-row: 1; }
+    .layout-5W #card-FR { grid-column: 3; grid-row: 1; }
+    .layout-5W #card-RL { grid-column: 1; grid-row: 2; }
+    .layout-5W #card-RR { grid-column: 3; grid-row: 2; }
+    .layout-5W #card-SP { grid-column: 2; grid-row: 3; margin: 0 -25px; padding: 6px 8px; }
+
+    /* 4-WHEEL (SEDAN) */
+    .layout-4W {
+      grid-template-columns: 1fr 100px 1fr;
+      grid-template-rows: 1fr 1fr;
+    }
+    .layout-4W #card-FL { grid-column: 1; grid-row: 1; }
+    .layout-4W #card-FR { grid-column: 3; grid-row: 1; }
+    .layout-4W #card-RL { grid-column: 1; grid-row: 2; }
+    .layout-4W #card-RR { grid-column: 3; grid-row: 2; }
+
+    /* 2-WHEEL MOTORCYCLE (CENTERLINE FRONT / REAR) */
+    .layout-2W_MOTO {
+      grid-template-columns: 1fr;
+      grid-template-rows: 90px 1fr 90px;
+      justify-items: center;
+    }
+    .layout-2W_MOTO #card-FRONT { grid-row: 1; width: 140px; }
+    .layout-2W_MOTO #card-REAR  { grid-row: 3; width: 140px; }
+
+    /* 2-WHEEL TRAILER (LEFT / RIGHT AXLE) */
+    .layout-2W_TRAILER {
+      grid-template-columns: 1fr 100px 1fr;
+      grid-template-rows: 1fr;
+    }
+    .layout-2W_TRAILER #card-LEFT  { grid-column: 1; }
+    .layout-2W_TRAILER #card-RIGHT { grid-column: 3; }
+
+    /* TIRE CARD STYLING */
     .tire-card {
-      background: var(--card-bg); border-radius: 12px; padding: 8px 10px; border: 2px solid var(--card-border);
-      display: flex; flex-direction: column; justify-content: space-between; min-height: 80px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: border-color 0.2s, box-shadow 0.2s;
+      background: var(--card-bg); border-radius: 14px; padding: 8px 12px;
+      border: 2px solid var(--card-border); display: flex; flex-direction: column;
+      justify-content: space-between; min-height: 85px; box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+      transition: all 0.25s ease;
     }
     .tire-card.ok { border-color: var(--ok); }
-    .tire-card.offroad { border-color: var(--offroad); box-shadow: 0 0 12px rgba(0, 180, 255, 0.35); }
+    .tire-card.offroad { border-color: var(--offroad); box-shadow: 0 0 12px rgba(0, 180, 255, 0.4); }
+    .tire-card.warn { border-color: var(--warn); }
+    .tire-card.alert { border-color: var(--alert); animation: pulse 1s infinite; }
 
-    .card-hdr { font-size: 10px; font-weight: 700; color: var(--text-muted); }
-    .card-val { font-size: 26px; font-weight: 900; line-height: 1.1; margin: 2px 0; }
-    .card-unit { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-left: 2px; }
-    .card-ftr { font-size: 11px; color: var(--text-muted); }
+    .card-hdr { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
+    .card-val { font-size: 28px; font-weight: 900; line-height: 1.05; margin: 3px 0; }
+    .card-unit { font-size: 11px; font-weight: 700; color: var(--text-muted); margin-left: 2px; }
+    .card-ftr { font-size: 11px; color: var(--text-muted); font-weight: 600; }
 
-    #card-FL { grid-column: 1; grid-row: 1; }
-    #card-FR { grid-column: 3; grid-row: 1; }
-    #card-RL { grid-column: 1; grid-row: 2; }
-    #card-RR { grid-column: 3; grid-row: 2; }
-    #card-SP { grid-column: 2; grid-row: 3; margin: 0 -20px; padding: 6px 10px; }
-    #card-SP .card-val { font-size: 20px; }
-
-    .chassis-center { grid-column: 2; grid-row: 1 / span 2; display: flex; align-items: center; justify-content: center; }
-    .chassis-center img { width: 100%; max-height: 190px; object-fit: contain; }
-
+    /* FOOTER CONTROLS */
     footer {
-      background: var(--card-bg); padding: 10px 12px 16px 12px; display: flex; gap: 6px;
-      border-top: 1px solid var(--card-border); flex-shrink: 0; position: sticky; bottom: 0; z-index: 20;
+      background: var(--card-bg); padding: 10px 12px 18px 12px; display: flex; gap: 8px;
+      border-top: 1px solid var(--card-border); flex-shrink: 0; z-index: 20;
     }
     button {
-      flex: 1; background: #232d3f; border: none; color: white; padding: 10px 4px;
-      font-size: 11px; font-weight: 700; border-radius: 8px; cursor: pointer;
+      flex: 1; background: #232d3f; border: none; color: white; padding: 12px 6px;
+      font-size: 11px; font-weight: 800; border-radius: 8px; cursor: pointer; text-transform: uppercase;
     }
-    button.btn-primary { background: #22c55e; color: #000; font-weight: 800; }
-    button.btn-mock { background: #3b82f6; }
+    button.btn-primary { background: #22c55e; color: #000; }
     button.btn-offroad { background: #00b4ff; color: #000; }
+    button.btn-menu { background: #334155; }
 
+    /* MODAL WINDOWS */
     .modal {
       display: none; position: fixed; inset: 0; background: rgba(11, 14, 20, 0.95);
       z-index: 100; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
     }
     .modal.active { display: flex; }
-    .modal-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 20px; width: 100%; max-width: 340px; text-align: center; }
+    .modal-box {
+      background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 18px;
+      padding: 20px; width: 100%; max-width: 360px; max-height: 85vh; overflow-y: auto;
+    }
+    .modal-hdr { font-size: 16px; font-weight: 800; margin-bottom: 14px; text-align: center; }
+    .form-group { margin-bottom: 12px; text-align: left; }
+    .form-group label { display: block; font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; }
+    .form-group input, .form-group select {
+      width: 100%; background: #0b0e14; border: 1px solid var(--card-border); color: #fff;
+      padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    }
+    .pill-group { display: flex; gap: 6px; margin-top: 4px; }
+    .pill-opt {
+      flex: 1; text-align: center; padding: 8px 4px; background: #1e293b; border-radius: 6px;
+      font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid transparent;
+    }
+    .pill-opt.selected { background: var(--offroad); color: #000; }
   </style>
 </head>
 <body>
 
+  <!-- HEADER -->
   <header>
-    <div class="brand" id="brand-lbl">LC150 TPMS | CONNECTING...</div>
-    <div class="status-badge status-disconnected" id="ble-badge">DISCONNECTED</div>
+    <div class="brand-title" id="brand-lbl">LAND CRUISER 150</div>
+    <div class="header-pills">
+      <div class="mode-pill" id="pill-mode">HIGHWAY</div>
+      <div class="status-badge status-disconnected" id="ble-badge">OFFLINE</div>
+    </div>
   </header>
 
-  <div class="main-grid" id="grid">
-    <div class="tire-card ok" id="card-FL">
-      <div class="card-hdr">FRONT LEFT</div>
-      <div class="card-val"><span id="val-FL">--</span><span class="card-unit">PSI</span></div>
-      <div class="card-ftr"><span id="temp-FL">--</span>°C</div>
-    </div>
-
-    <div class="chassis-center">
-      <img id="chassis-img" src="assets/lc150_2015.svg" alt="Chassis">
-    </div>
-
-    <div class="tire-card ok" id="card-FR">
-      <div class="card-hdr">FRONT RIGHT</div>
-      <div class="card-val"><span id="val-FR">--</span><span class="card-unit">PSI</span></div>
-      <div class="card-ftr"><span id="temp-FR">--</span>°C</div>
-    </div>
-
-    <div class="tire-card ok" id="card-RL">
-      <div class="card-hdr">REAR LEFT</div>
-      <div class="card-val"><span id="val-RL">--</span><span class="card-unit">PSI</span></div>
-      <div class="card-ftr"><span id="temp-RL">--</span>°C</div>
-    </div>
-
-    <div class="tire-card ok" id="card-RR">
-      <div class="card-hdr">REAR RIGHT</div>
-      <div class="card-val"><span id="val-RR">--</span><span class="card-unit">PSI</span></div>
-      <div class="card-ftr"><span id="temp-RR">--</span>°C</div>
-    </div>
-
-    <div class="tire-card ok" id="card-SP">
-      <div class="card-hdr">SPARE</div>
-      <div class="card-val"><span id="val-SP">--</span><span class="card-unit">PSI</span></div>
-      <div class="card-ftr"><span id="temp-SP">--</span>°C</div>
-    </div>
+  <!-- VIEWPORT -->
+  <div id="viewport-container">
+    <img id="chassis-img" src="assets/lc150_2015.svg" alt="Vehicle">
+    <div class="grid-canvas layout-5W" id="canvas-grid"></div>
   </div>
 
+  <!-- ACTION BAR -->
   <footer>
     <button class="btn-primary" id="btn-ble">CONNECT</button>
-    <button id="btn-profiles">PROFILES</button>
-    <button class="btn-offroad" id="btn-sim-mode">OFF-ROAD</button>
-    <button class="btn-mock" id="btn-pair">PAIR</button>
+    <button class="btn-offroad" id="btn-mode-toggle">OFF-ROAD</button>
+    <button class="btn-menu" id="btn-menu-open">MENU</button>
   </footer>
 
-  <!-- PROFILES MODAL -->
-  <div class="modal" id="modal-profiles">
+  <!-- MAIN MENU MODAL -->
+  <div class="modal" id="modal-menu">
     <div class="modal-box">
-      <h3 style="margin-bottom: 12px;">SELECT VEHICLE</h3>
-      <div id="profile-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
-        <p style="color:var(--text-muted); font-size:12px;">Waiting for connection...</p>
+      <div class="modal-hdr">SYSTEM MANAGEMENT</div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <button id="menu-btn-profiles" style="padding:14px;">🚗 VEHICLE PROFILES</button>
+        <button id="menu-btn-rotate" style="padding:14px;">🔄 TIRE ROTATION TOOL</button>
+        <button id="menu-btn-wizard" style="padding:14px;">📡 SENSOR PAIRING WIZARD</button>
+        <button id="menu-btn-thresholds" style="padding:14px;">⚙️ PRESSURE THRESHOLDS</button>
+        <button id="menu-btn-units" style="padding:14px;">📐 DISPLAY UNITS</button>
       </div>
-      <button id="btn-close-prof" style="width: 100%;">CLOSE</button>
+      <button id="menu-btn-close" style="width:100%; margin-top:16px; background:#ef4444;">CLOSE</button>
     </div>
   </div>
 
-  <!-- PAIRING WIZARD MODAL -->
-  <div class="modal" id="modal-wiz">
+  <!-- PROFILES MANAGER MODAL -->
+  <div class="modal" id="modal-profiles">
     <div class="modal-box">
-      <h4 style="color: var(--offroad); margin-bottom: 6px;">PAIRING WIZARD</h4>
-      <h2 id="wiz-step-name" style="margin-bottom: 8px;">FRONT LEFT</h2>
-      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Bleed ~2-3 PSI from this tire or tap button below:</p>
-      <button class="btn-primary" id="btn-sim-step" style="width: 100%; margin-bottom: 10px; padding: 12px 0;">SIMULATE SENSOR BLEED</button>
-      <button id="btn-wiz-cancel" style="width: 100%; background: var(--alert);">CANCEL</button>
+      <div class="modal-hdr">VEHICLE PROFILES</div>
+      <div id="profile-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;"></div>
+      <button class="btn-primary" id="btn-create-prof-open" style="width:100%; margin-bottom:8px;">+ NEW VEHICLE</button>
+      <button id="btn-close-prof" style="width:100%;">BACK</button>
+    </div>
+  </div>
+
+  <!-- CREATE VEHICLE MODAL -->
+  <div class="modal" id="modal-create-prof">
+    <div class="modal-box">
+      <div class="modal-hdr">NEW VEHICLE PROFILE</div>
+      <div class="form-group">
+        <label>VEHICLE NAME</label>
+        <input type="text" id="new-prof-name" placeholder="e.g. Hilux Camper">
+      </div>
+      <div class="form-group">
+        <label>CHASSIS ARCHITECTURE</label>
+        <select id="new-prof-layout">
+          <option value="5W">5-Wheel (4 Wheels + Spare)</option>
+          <option value="4W">4-Wheel (Standard Passenger)</option>
+          <option value="2W_MOTO">2-Wheel (Motorcycle / Dirt Bike)</option>
+          <option value="2W_TRAILER">2-Wheel (Axle Trailer)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>TARGET PRESSURE (PSI)</label>
+        <input type="number" id="new-prof-target" value="35">
+      </div>
+      <button class="btn-primary" id="btn-create-prof-save" style="width:100%; margin-bottom:8px;">CREATE & ACTIVATE</button>
+      <button id="btn-create-prof-cancel" style="width:100%; background:#ef4444;">CANCEL</button>
+    </div>
+  </div>
+
+  <!-- TIRE ROTATION TOOL MODAL -->
+  <div class="modal" id="modal-rotation">
+    <div class="modal-box">
+      <div class="modal-hdr">TIRE ROTATION TOOL</div>
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px; text-align:center;">
+        Swap sensor positions digitally without having to re-pair or deflate tires.
+      </p>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button id="btn-rot-front-back" style="padding:12px;">FRONT ⇄ REAR SWAP</button>
+        <button id="btn-rot-x-cross" style="padding:12px;">X-PATTERN CROSS SWAP</button>
+        <button id="btn-rot-spare" style="padding:12px;">5-WHEEL SPARE ROTATION</button>
+      </div>
+      <button id="btn-close-rot" style="width:100%; margin-top:16px;">BACK</button>
+    </div>
+  </div>
+
+  <!-- SENSOR PAIRING WIZARD MODAL -->
+  <div class="modal" id="modal-wiz">
+    <div class="modal-box" style="text-align:center;">
+      <h4 style="color:var(--offroad); margin-bottom:6px;">CALIBRATION WIZARD</h4>
+      <h2 id="wiz-step-name" style="margin-bottom:10px;">FRONT LEFT</h2>
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:18px;">
+        Bleed ~2-3 PSI from this tire to activate RF transmission, or simulate below:
+      </p>
+      <button class="btn-primary" id="btn-sim-step" style="width:100%; margin-bottom:8px; padding:12px 0;">SIMULATE SENSOR DETECT</button>
+      <button id="btn-wiz-cancel" style="width:100%; background:var(--alert);">CANCEL</button>
+    </div>
+  </div>
+
+  <!-- THRESHOLDS MODAL -->
+  <div class="modal" id="modal-thresholds">
+    <div class="modal-box">
+      <div class="modal-hdr">PRESSURE THRESHOLDS</div>
+      <div class="form-group">
+        <label>TARGET HIGHWAY PSI</label>
+        <input type="number" id="th-target-psi" step="0.5">
+      </div>
+      <div class="form-group">
+        <label>LOW PRESSURE ALARM (PSI)</label>
+        <input type="number" id="th-low-psi" step="0.5">
+      </div>
+      <button class="btn-primary" id="btn-save-thresholds" style="width:100%; margin-bottom:8px;">SAVE CHANGES</button>
+      <button id="btn-close-thresholds" style="width:100%;">BACK</button>
+    </div>
+  </div>
+
+  <!-- DISPLAY UNITS MODAL -->
+  <div class="modal" id="modal-units">
+    <div class="modal-box">
+      <div class="modal-hdr">DISPLAY UNITS</div>
+      <div class="form-group">
+        <label>PRESSURE UNIT</label>
+        <div class="pill-group" id="unit-pills-p">
+          <div class="pill-opt selected" data-unit="PSI">PSI</div>
+          <div class="pill-opt" data-unit="BAR">BAR</div>
+          <div class="pill-opt" data-unit="KPA">kPa</div>
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:16px;">
+        <label>TEMPERATURE UNIT</label>
+        <div class="pill-group" id="unit-pills-t">
+          <div class="pill-opt selected" data-unit="C">°C</div>
+          <div class="pill-opt" data-unit="F">°F</div>
+        </div>
+      </div>
+      <button id="btn-close-units" style="width:100%; margin-top:16px;">DONE</button>
     </div>
   </div>
 
@@ -170,10 +312,25 @@
 
     let rxChar = null;
     let streamBuffer = "";
+    let activeData = null;
+    let pressureUnit = localStorage.getItem("tpms_unit_p") || "PSI";
+    let tempUnit = localStorage.getItem("tpms_unit_t") || "C";
 
+    // UNIT CONVERTERS
+    function formatPressure(psi) {
+      if (pressureUnit === "BAR") return (psi * 0.0689476).toFixed(2);
+      if (pressureUnit === "KPA") return Math.round(psi * 6.89476);
+      return psi.toFixed(1);
+    }
+    function formatTemp(c) {
+      if (tempUnit === "F") return Math.round((c * 9/5) + 32);
+      return c;
+    }
+
+    // BLUETOOTH CONNECTION
     async function toggleConnect() {
       if (!navigator.bluetooth) {
-        alert("Web Bluetooth not available in this context.");
+        alert("Web Bluetooth not enabled. Check chrome://flags");
         return;
       }
       try {
@@ -181,7 +338,6 @@
           filters: [{ name: "LC150-TPMS" }],
           optionalServices: [UART_SVC]
         });
-
         const server = await device.gatt.connect();
         const service = await server.getPrimaryService(UART_SVC);
         rxChar = await service.getCharacteristic(UART_RX);
@@ -189,35 +345,40 @@
 
         await txChar.startNotifications();
         streamBuffer = "";
-        
         txChar.addEventListener("characteristicvaluechanged", (e) => {
-          const chunk = new TextDecoder().decode(e.target.value);
-          streamBuffer += chunk;
-          
+          streamBuffer += new TextDecoder().decode(e.target.value);
           let idx;
           while ((idx = streamBuffer.indexOf("\n")) >= 0) {
             const line = streamBuffer.substring(0, idx).trim();
             streamBuffer = streamBuffer.substring(idx + 1);
             if (line) {
-              try {
-                render(JSON.parse(line));
-              } catch (err) {
-                console.error("Malformed JSON:", err, line);
-              }
+              try { render(JSON.parse(line)); } catch(err){}
             }
           }
         });
 
         document.getElementById("ble-badge").className = "status-badge status-connected";
-        document.getElementById("ble-badge").textContent = "LIVE (BLE)";
+        document.getElementById("ble-badge").textContent = "LIVE";
         document.getElementById("btn-ble").textContent = "DISCONNECT";
         sendCmd("PING");
       } catch (err) {
-        console.error("BLE Connect failed:", err);
+        console.error("BLE fail:", err);
       }
     }
 
+    async function sendCmd(cmd) {
+      if (!rxChar) return;
+      const data = new TextEncoder().encode(cmd + "\n");
+      try {
+        if (rxChar.writeValueWithoutResponse) await rxChar.writeValueWithoutResponse(data);
+        else await rxChar.writeValue(data);
+      } catch(e) { console.error("sendCmd err:", e); }
+    }
+
+    // RENDER ENGINE (DYNAMIC GRID)
     function render(data) {
+      activeData = data;
+
       if (data.state === "WIZARD") {
         document.getElementById("modal-wiz").classList.add("active");
         document.getElementById("wiz-step-name").textContent = `STEP ${data.step_num}/${data.total_steps}: ${data.step}`;
@@ -225,68 +386,193 @@
       }
       document.getElementById("modal-wiz").classList.remove("active");
 
-      const brand = document.getElementById("brand-lbl");
-      const name = data.name || data.profile_name || "VEHICLE";
-      brand.textContent = `${name.toUpperCase()} | ${data.mode}`;
-      brand.style.color = data.mode === "OFFROAD" ? "var(--offroad)" : "var(--text-main)";
+      // Mode & Brand
+      document.getElementById("brand-lbl").textContent = data.name.toUpperCase();
+      const pillMode = document.getElementById("pill-mode");
+      pillMode.textContent = data.mode;
+      pillMode.className = data.mode === "OFFROAD" ? "mode-pill offroad" : "mode-pill";
 
+      // Wireframe Asset
       if (data.asset) document.getElementById("chassis-img").src = `assets/${data.asset}.svg`;
 
-      const cardSP = document.getElementById("card-SP");
-      cardSP.style.display = data.layout === "5W" ? "flex" : "none";
-
-      if (data.tires) {
-        for (const [w, t] of Object.entries(data.tires)) {
-          const valEl = document.getElementById(`val-${w}`);
-          const tempEl = document.getElementById(`temp-${w}`);
-          const card = document.getElementById(`card-${w}`);
-          if (valEl) valEl.textContent = t.psi.toFixed(1);
-          if (tempEl) tempEl.textContent = t.temp;
-          if (card) card.className = data.mode === "OFFROAD" ? "tire-card offroad" : "tire-card ok";
-        }
+      // Layout Grid Rebuild
+      const grid = document.getElementById("canvas-grid");
+      const targetClass = `grid-canvas layout-${data.layout}`;
+      if (grid.className !== targetClass) {
+        grid.className = targetClass;
       }
 
-      const profList = data.profiles || data.profiles_list;
-      if (profList) {
+      // Re-populate Wheel Cards Dynamically
+      grid.innerHTML = "";
+      for (const [wKey, tData] of Object.entries(data.tires)) {
+        const card = document.createElement("div");
+        card.id = `card-${wKey}`;
+        card.className = data.mode === "OFFROAD" ? "tire-card offroad" : "tire-card ok";
+        card.innerHTML = `
+          <div class="card-hdr">${wKey.replace('_', ' ')}</div>
+          <div class="card-val"><span>${formatPressure(tData.psi)}</span><span class="card-unit">${pressureUnit}</span></div>
+          <div class="card-ftr"><span>${formatTemp(tData.temp)}</span>°${tempUnit}</div>
+        `;
+        grid.appendChild(card);
+      }
+
+      // Populate Profiles in Modal
+      if (data.profiles) {
         const list = document.getElementById("profile-list");
         list.innerHTML = "";
-        profList.forEach(p => {
+        data.profiles.forEach(p => {
           const btn = document.createElement("button");
-          const isActive = (p.id === data.profile || p.id === data.active_profile);
+          const isActive = (p.id === data.profile);
           btn.textContent = p.name + (isActive ? " (ACTIVE)" : "");
-          btn.style.background = isActive ? "var(--offroad)" : "#232d3f";
+          btn.style.background = isActive ? "var(--offroad)" : "#1e293b";
           btn.style.color = isActive ? "#000" : "#fff";
-          btn.style.padding = "12px 8px";
+          btn.style.padding = "12px";
           btn.onclick = () => {
             sendCmd(`PROFILE:SELECT:${p.id}`);
-            document.getElementById("modal-profiles").classList.remove("active");
+            closeModals();
           };
           list.appendChild(btn);
         });
       }
     }
 
-    async function sendCmd(cmd) {
-      if (!rxChar) return;
-      try {
-        const payload = new TextEncoder().encode(cmd + "\n");
-        if (rxChar.writeValueWithoutResponse) {
-          await rxChar.writeValueWithoutResponse(payload);
-        } else {
-          await rxChar.writeValue(payload);
-        }
-      } catch (err) {
-        console.error("sendCmd err:", err);
-      }
+    // MODAL FLOW ROUTING
+    function closeModals() {
+      document.querySelectorAll(".modal").forEach(m => m.classList.remove("active"));
     }
 
     document.getElementById("btn-ble").onclick = toggleConnect;
-    document.getElementById("btn-profiles").onclick = () => document.getElementById("modal-profiles").classList.add("active");
-    document.getElementById("btn-close-prof").onclick = () => document.getElementById("modal-profiles").classList.remove("active");
-    document.getElementById("btn-sim-mode").onclick = () => sendCmd("SIM:TOGGLE_MODE");
-    document.getElementById("btn-pair").onclick = () => sendCmd("WIZARD:START");
+    document.getElementById("btn-mode-toggle").onclick = () => sendCmd("SIM:TOGGLE_MODE");
+    document.getElementById("pill-mode").onclick = () => sendCmd("SIM:TOGGLE_MODE");
+
+    // Main Menu Drawer
+    document.getElementById("btn-menu-open").onclick = () => document.getElementById("modal-menu").classList.add("active");
+    document.getElementById("menu-btn-close").onclick = closeModals;
+
+    // Profiles Flow
+    document.getElementById("menu-btn-profiles").onclick = () => {
+      closeModals();
+      document.getElementById("modal-profiles").classList.add("active");
+    };
+    document.getElementById("btn-close-prof").onclick = () => {
+      closeModals();
+      document.getElementById("modal-menu").classList.add("active");
+    };
+
+    // Create Profile Flow
+    document.getElementById("btn-create-prof-open").onclick = () => {
+      closeModals();
+      document.getElementById("modal-create-prof").classList.add("active");
+    };
+    document.getElementById("btn-create-prof-cancel").onclick = () => {
+      closeModals();
+      document.getElementById("modal-profiles").classList.add("active");
+    };
+    document.getElementById("btn-create-prof-save").onclick = () => {
+      const name = document.getElementById("new-prof-name").value.trim();
+      const layout = document.getElementById("new-prof-layout").value;
+      const target = parseFloat(document.getElementById("new-prof-target").value) || 35.0;
+      if (!name) return;
+
+      const id = name.toLowerCase().replace(/[^a-z0-9]/g, "_");
+      let asset = "lc150_2015";
+      let wheels = ["FL", "FR", "RR", "RL", "SP"];
+
+      if (layout === "4W") { asset = "sedan"; wheels = ["FL", "FR", "RR", "RL"]; }
+      else if (layout === "2W_MOTO") { asset = "motocross"; wheels = ["FRONT", "REAR"]; }
+      else if (layout === "2W_TRAILER") { asset = "trailer"; wheels = ["LEFT", "RIGHT"]; }
+
+      const payload = {
+        id: id,
+        name: name,
+        layout: layout,
+        asset: asset,
+        wheels: wheels,
+        sensors: {},
+        thresholds: { target_psi: target, highway_low_psi: target * 0.8, offroad_enabled: layout === "5W" }
+      };
+
+      sendCmd(`PROFILE:CREATE:${JSON.stringify(payload)}`);
+      closeModals();
+    };
+
+    // Tire Rotation Tool Flow
+    document.getElementById("menu-btn-rotate").onclick = () => {
+      closeModals();
+      document.getElementById("modal-rotation").classList.add("active");
+    };
+    document.getElementById("btn-close-rot").onclick = () => {
+      closeModals();
+      document.getElementById("modal-menu").classList.add("active");
+    };
+    document.getElementById("btn-rot-front-back").onclick = () => {
+      sendCmd(`TIRES:ROTATE:${JSON.stringify({"FL":"RL","RL":"FL","FR":"RR","RR":"FR"})}`);
+      closeModals();
+    };
+    document.getElementById("btn-rot-x-cross").onclick = () => {
+      sendCmd(`TIRES:ROTATE:${JSON.stringify({"FL":"RR","RR":"FL","FR":"RL","RL":"FR"})}`);
+      closeModals();
+    };
+    document.getElementById("btn-rot-spare").onclick = () => {
+      sendCmd(`TIRES:ROTATE:${JSON.stringify({"SP":"FR","FR":"RR","RR":"RL","RL":"FL","FL":"SP"})}`);
+      closeModals();
+    };
+
+    // Pairing Wizard Flow
+    document.getElementById("menu-btn-wizard").onclick = () => {
+      closeModals();
+      sendCmd("WIZARD:START");
+    };
     document.getElementById("btn-sim-step").onclick = () => sendCmd("SIM:DEFLATE_STEP");
     document.getElementById("btn-wiz-cancel").onclick = () => sendCmd("WIZARD:CANCEL");
+
+    // Thresholds Flow
+    document.getElementById("menu-btn-thresholds").onclick = () => {
+      closeModals();
+      if (activeData && activeData.thresholds) {
+        document.getElementById("th-target-psi").value = activeData.thresholds.target_psi || 35;
+        document.getElementById("th-low-psi").value = activeData.thresholds.highway_low_psi || 28;
+      }
+      document.getElementById("modal-thresholds").classList.add("active");
+    };
+    document.getElementById("btn-close-thresholds").onclick = () => {
+      closeModals();
+      document.getElementById("modal-menu").classList.add("active");
+    };
+    document.getElementById("btn-save-thresholds").onclick = () => {
+      const target = parseFloat(document.getElementById("th-target-psi").value);
+      const low = parseFloat(document.getElementById("th-low-psi").value);
+      sendCmd(`PROFILE:THRESHOLDS:${JSON.stringify({target_psi: target, highway_low_psi: low})}`);
+      closeModals();
+    };
+
+    // Display Units Flow
+    document.getElementById("menu-btn-units").onclick = () => {
+      closeModals();
+      document.getElementById("modal-units").classList.add("active");
+    };
+    document.getElementById("btn-close-units").onclick = () => {
+      closeModals();
+      if (activeData) render(activeData);
+    };
+
+    document.querySelectorAll("#unit-pills-p .pill-opt").forEach(el => {
+      el.onclick = () => {
+        document.querySelectorAll("#unit-pills-p .pill-opt").forEach(p => p.classList.remove("selected"));
+        el.classList.add("selected");
+        pressureUnit = el.getAttribute("data-unit");
+        localStorage.setItem("tpms_unit_p", pressureUnit);
+      };
+    });
+
+    document.querySelectorAll("#unit-pills-t .pill-opt").forEach(el => {
+      el.onclick = () => {
+        document.querySelectorAll("#unit-pills-t .pill-opt").forEach(p => p.classList.remove("selected"));
+        el.classList.add("selected");
+        tempUnit = el.getAttribute("data-unit");
+        localStorage.setItem("tpms_unit_t", tempUnit);
+      };
+    });
   </script>
 </body>
 </html>

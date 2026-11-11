@@ -1,0 +1,8 @@
+{
+  "name": "LC150 TPMS Dashboard",
+  "short_name": "TPMS",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0b0e14",
+  "theme_color": "#0b0e14"
+}
