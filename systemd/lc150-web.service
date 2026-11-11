@@ -1,0 +1,14 @@
+[Unit]
+Description=LC150 TPMS Secure Web Dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/pi/lc150-tpms/web
+ExecStart=/usr/bin/python3 -c "import http.server, ssl; s = http.server.HTTPServer((\x270.0.0.0\x27, 8443), http.server.SimpleHTTPRequestHandler); ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER); ctx.load_cert_chain(\x27cert.pem\x27, \x27key.pem\x27); s.socket = ctx.wrap_socket(s.socket, server_side=True); s.serve_forever()"
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

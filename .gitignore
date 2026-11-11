@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+web/*.pem
+.DS_Store

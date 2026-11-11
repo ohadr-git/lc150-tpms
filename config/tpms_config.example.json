@@ -1,0 +1,37 @@
+{
+  "active_profile": "prado_150",
+  "profiles": {
+    "prado_150": {
+      "name": "Land Cruiser 150",
+      "layout": "5W",
+      "asset": "lc150_2015",
+      "wheels": ["FL", "FR", "RR", "RL", "SP"],
+      "sensors": {"04d3c1": "FL", "04d3c2": "FR", "04d3c3": "RR", "04d3c4": "RL", "04d3c5": "SP"},
+      "thresholds": {"target_psi": 35.0, "highway_low_psi": 28.0, "highway_check_psi": 31.0, "offroad_enabled": true, "offroad_enter_psi": 24.0, "offroad_exit_psi": 29.0, "trail_min_safe_psi": 12.0, "trail_max_delta": 5.0}
+    },
+    "subaru_sedan": {
+      "name": "Daily Sedan",
+      "layout": "4W",
+      "asset": "sedan",
+      "wheels": ["FL", "FR", "RR", "RL"],
+      "sensors": {"01a1b1": "FL", "01a1b2": "FR", "01a1b3": "RR", "01a1b4": "RL"},
+      "thresholds": {"target_psi": 33.0, "highway_low_psi": 27.0, "highway_check_psi": 30.0, "offroad_enabled": false}
+    },
+    "moto_dirt": {
+      "name": "KTM 450 Motocross",
+      "layout": "2W_MOTO",
+      "asset": "motocross",
+      "wheels": ["FRONT", "REAR"],
+      "sensors": {"02b2c1": "FRONT", "02b2c2": "REAR"},
+      "thresholds": {"target_psi": 15.0, "highway_low_psi": 11.0, "highway_check_psi": 13.0, "offroad_enabled": false}
+    },
+    "box_trailer": {
+      "name": "Utility Trailer",
+      "layout": "2W_TRAILER",
+      "asset": "trailer",
+      "wheels": ["LEFT", "RIGHT"],
+      "sensors": {"03c3d1": "LEFT", "03c3d2": "RIGHT"},
+      "thresholds": {"target_psi": 50.0, "highway_low_psi": 42.0, "highway_check_psi": 46.0, "offroad_enabled": false}
+    }
+  }
+}

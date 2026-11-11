@@ -1,0 +1,15 @@
+[Unit]
+Description=LC150 TPMS Gateway Service
+After=bluetooth.target
+Wants=bluetooth.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/pi/lc150-tpms/daemon
+ExecStart=/usr/bin/python3 /home/pi/lc150-tpms/daemon/tpms_ble_daemon.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
