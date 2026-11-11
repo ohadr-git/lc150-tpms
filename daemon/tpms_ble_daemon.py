@@ -67,10 +67,13 @@ class Characteristic(dbus.service.Object):
         self.bus, self.uuid, self.service, self.flags, self.notifying = bus, uuid, service, flags, False
         super().__init__(bus, self.path)
     def get_properties(self):
-        return {GATT_CHRC_IFACE: {Service: self.service.get_path(), UUID: self.uuid, Flags: self.flags}}
+        return {GATT_CHRC_IFACE: {'Service': self.service.get_path(), 'UUID': self.uuid, 'Flags': self.flags}}
     def get_path(self): return dbus.ObjectPath(self.path)
-    @dbus.service.method(DBUS_PROP_IFACE, in_signature=s, out_signature=a{sv})
-    def GetAll(self, interface): return self.get_properties()[GATT_CHRC_IFACE]
+    @dbus.service.method(DBUS_PROP_IFACE, in_signature='s', out_signature='a{sv}')
+    def GetAll(self, interface):
+        if interface != GATT_CHRC_IFACE:
+            raise dbus.exceptions.DBusException('org.freedesktop.DBus.Error.InvalidArgs')
+        return self.get_properties()[GATT_CHRC_IFACE]
     @dbus.service.method(GATT_CHRC_IFACE)
     def StartNotify(self): self.notifying = True
     @dbus.service.method(GATT_CHRC_IFACE)
@@ -78,20 +81,20 @@ class Characteristic(dbus.service.Object):
 
 class UartTxCharacteristic(Characteristic):
     def __init__(self, bus, index, service):
-        super().__init__(bus, index, UART_TX_UUID, [notify], service)
+        super().__init__(bus, index, UART_TX_UUID, ['notify'], service)
     def send_notification(self, text):
         if not self.notifying: return
-        val = [dbus.Byte(b) for b in text.encode(utf-8)]
-        self.PropertiesChanged(GATT_CHRC_IFACE, {Value: val}, [])
-    @dbus.service.signal(DBUS_PROP_IFACE, signature=sa{sv}as)
+        val = [dbus.Byte(b) for b in text.encode('utf-8')]
+        self.PropertiesChanged(GATT_CHRC_IFACE, {'Value': val}, [])
+    @dbus.service.signal(DBUS_PROP_IFACE, signature='sa{sv}as')
     def PropertiesChanged(self, interface, changed, invalidated): pass
 
 class UartRxCharacteristic(Characteristic):
     def __init__(self, bus, index, service):
-        super().__init__(bus, index, UART_RX_UUID, [write, write-without-response], service)
-    @dbus.service.method(GATT_CHRC_IFACE, in_signature=aya{sv})
+        super().__init__(bus, index, UART_RX_UUID, ['write', 'write-without-response'], service)
+    @dbus.service.method(GATT_CHRC_IFACE, in_signature='aya{sv}')
     def WriteValue(self, value, options):
-        handle_incoming_command(bytes(value).decode(utf-8).strip())
+        handle_incoming_command(bytes(value).decode('utf-8').strip())
 
 class UartService(dbus.service.Object):
     def __init__(self, bus, index):
@@ -102,17 +105,20 @@ class UartService(dbus.service.Object):
         tx_characteristic = UartTxCharacteristic(bus, 0, self)
         self.characteristics.extend([tx_characteristic, UartRxCharacteristic(bus, 1, self)])
     def get_properties(self):
-        return {GATT_SERVICE_IFACE: {UUID: self.uuid, Primary: self.primary, Characteristics: dbus.Array([c.get_path() for c in self.characteristics], signature=o)}}
+        return {GATT_SERVICE_IFACE: {'UUID': self.uuid, 'Primary': self.primary, 'Characteristics': dbus.Array([c.get_path() for c in self.characteristics], signature='o')}}
     def get_path(self): return dbus.ObjectPath(self.path)
-    @dbus.service.method(DBUS_PROP_IFACE, in_signature=s, out_signature=a{sv})
-    def GetAll(self, interface): return self.get_properties()[GATT_SERVICE_IFACE]
+    @dbus.service.method(DBUS_PROP_IFACE, in_signature='s', out_signature='a{sv}')
+    def GetAll(self, interface):
+        if interface != GATT_SERVICE_IFACE:
+            raise dbus.exceptions.DBusException('org.freedesktop.DBus.Error.InvalidArgs')
+        return self.get_properties()[GATT_SERVICE_IFACE]
 
 class BleApplication(dbus.service.Object):
     def __init__(self, bus):
-        self.path, self.services = /, [UartService(bus, 0)]
+        self.path, self.services = '/', [UartService(bus, 0)]
         super().__init__(bus, self.path)
     def get_path(self): return dbus.ObjectPath(self.path)
-    @dbus.service.method(DBUS_OM_IFACE, out_signature=a{oa{sa{sv}}})
+    @dbus.service.method(DBUS_OM_IFACE, out_signature='a{oa{sa{sv}}}')
     def GetManagedObjects(self):
         res = {}
         for s in self.services:
@@ -122,14 +128,34 @@ class BleApplication(dbus.service.Object):
 
 class BleAdvertisement(dbus.service.Object):
     def __init__(self, bus, index):
-        self.path, self.bus, self.ad_type, self.service_uuids, self.local_name = f"/org/bluez/advertisement{index}", bus, "peripheral", [UART_SVC_UUID], "LC150-TPMS"
+        self.path = f"/org/bluez/advertisement{index}"
+        self.bus = bus
+        self.ad_type = "peripheral"
+        self.service_uuids = [UART_SVC_UUID]
+        self.local_name = "LC150-TPMS"
         super().__init__(bus, self.path)
-    def get_path(self): return dbus.ObjectPath(self.path)
-    @dbus.service.method(DBUS_PROP_IFACE, in_signature=s, out_signature=a{sv})
+
+    def get_path(self):
+        return dbus.ObjectPath(self.path)
+
+    def get_properties(self):
+        return {
+            LE_ADVERTISEMENT_IFACE: {
+                'Type': self.ad_type,
+                'ServiceUUIDs': dbus.Array(self.service_uuids, signature='s'),
+                'LocalName': dbus.String(self.local_name),
+            }
+        }
+
+    @dbus.service.method(DBUS_PROP_IFACE, in_signature='s', out_signature='a{sv}')
     def GetAll(self, interface):
-        return {LE_ADVERTISEMENT_IFACE: {Type: self.ad_type, ServiceUUIDs: dbus.Array(self.service_uuids, signature=s), LocalName: dbus.String(self.local_name), IncludeTxPower: dbus.Boolean(True)}}
-    @dbus.service.method(LE_ADVERTISEMENT_IFACE, in_signature=, out_signature=)
-    def Release(self): pass
+        if interface != LE_ADVERTISEMENT_IFACE:
+            raise dbus.exceptions.DBusException('org.freedesktop.DBus.Error.InvalidArgs')
+        return self.get_properties()[LE_ADVERTISEMENT_IFACE]
+
+    @dbus.service.method(LE_ADVERTISEMENT_IFACE, in_signature='', out_signature='')
+    def Release(self):
+        pass
 
 def handle_incoming_command(cmd):
     global APP_STATE, SYSTEM_MODE, wizard_step_idx
@@ -199,10 +225,11 @@ def main():
     service_manager = dbus.Interface(bus.get_object(BLUEZ_SERVICE_NAME, adapter_path), GATT_MANAGER_IFACE)
     ad_manager = dbus.Interface(bus.get_object(BLUEZ_SERVICE_NAME, adapter_path), LE_ADVERTISING_MANAGER_IFACE)
     app, ad = BleApplication(bus), BleAdvertisement(bus, 0)
-    service_manager.RegisterApplication(app.get_path(), {}, reply_handler=lambda: None, error_handler=lambda e: logging.error(f"GATT Error: {e}"))
+    service_manager.RegisterApplication(app.get_path(), {}, reply_handler=lambda: logging.info("GATT Registered"), error_handler=lambda e: logging.error(f"GATT Error: {e}"))
     ad_manager.RegisterAdvertisement(ad.get_path(), {}, reply_handler=lambda: logging.info("BLE Advertising Active"), error_handler=lambda e: logging.error(f"Ad Error: {e}"))
 
     threading.Thread(target=mock_telemetry_loop, daemon=True).start()
+    logging.info("Daemon operational, broadcasting as LC150-TPMS")
     GLib.MainLoop().run()
 
 if __name__ == "__main__": main()
