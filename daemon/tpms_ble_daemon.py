@@ -59,7 +59,7 @@ def reset_tire_data():
     wheels = prof.get("wheels", ["FL", "FR", "RR", "RL", "SP"])
     base_p = prof.get("thresholds", {}).get("target_psi", 35.0)
     now = time.time()
-    tires = {w: {"psi": base_p + round(random.uniform(-0.4, 0.4), 1), "temp": 24, "last_seen": now, "status": "NORMAL"} for w in wheels}
+    tires = {w: {"psi": base_p + round(random.uniform(-0.3, 0.3), 1), "temp": 24, "last_seen": now, "status": "NORMAL"} for w in wheels}
 
 class Characteristic(dbus.service.Object):
     def __init__(self, bus, index, uuid, flags, service):
@@ -71,30 +71,51 @@ class Characteristic(dbus.service.Object):
     def get_path(self): return dbus.ObjectPath(self.path)
     @dbus.service.method(DBUS_PROP_IFACE, in_signature='s', out_signature='a{sv}')
     def GetAll(self, interface):
-        if interface != GATT_CHRC_IFACE:
-            raise dbus.exceptions.DBusException('org.freedesktop.DBus.Error.InvalidArgs')
+        if interface != GATT_CHRC_IFACE: raise dbus.exceptions.DBusException('org.freedesktop.DBus.Error.InvalidArgs')
         return self.get_properties()[GATT_CHRC_IFACE]
     @dbus.service.method(GATT_CHRC_IFACE)
-    def StartNotify(self): self.notifying = True
+    def StartNotify(self):
+        self.notifying = True
+        logging.info("BLE Client Subscribed! Sending initial telemetry frame...")
+        threading.Thread(target=broadcast_telemetry, daemon=True).start()
     @dbus.service.method(GATT_CHRC_IFACE)
-    def StopNotify(self): self.notifying = False
+    def StopNotify(self):
+        self.notifying = False
+        logging.info("BLE Client Unsubscribed")
 
 class UartTxCharacteristic(Characteristic):
     def __init__(self, bus, index, service):
         super().__init__(bus, index, UART_TX_UUID, ['notify'], service)
+
     def send_notification(self, text):
         if not self.notifying: return
-        val = [dbus.Byte(b) for b in text.encode('utf-8')]
-        self.PropertiesChanged(GATT_CHRC_IFACE, {'Value': val}, [])
+        data = (text if text.endswith('\n') else text + '\n').encode('utf-8')
+        # Standard BLE ATT MTU chunking (20-byte safe packets)
+        chunk_size = 20
+        for i in range(0, len(data), chunk_size):
+            chunk = data[i:i + chunk_size]
+            try:
+                self.PropertiesChanged(GATT_CHRC_IFACE, {'Value': dbus.ByteArray(chunk)}, [])
+            except Exception as e:
+                logging.error(f"Error sending BLE chunk: {e}")
+                break
+            time.sleep(0.012) # 12ms pacing prevents BlueZ queue saturation
+
     @dbus.service.signal(DBUS_PROP_IFACE, signature='sa{sv}as')
     def PropertiesChanged(self, interface, changed, invalidated): pass
 
 class UartRxCharacteristic(Characteristic):
     def __init__(self, bus, index, service):
         super().__init__(bus, index, UART_RX_UUID, ['write', 'write-without-response'], service)
+
     @dbus.service.method(GATT_CHRC_IFACE, in_signature='aya{sv}')
     def WriteValue(self, value, options):
-        handle_incoming_command(bytes(value).decode('utf-8').strip())
+        try:
+            cmd = bytes(value).decode('utf-8').strip()
+            logging.info(f"Incoming BLE Command: {cmd}")
+            handle_incoming_command(cmd)
+        except Exception as e:
+            logging.error(f"Error executing write: {e}")
 
 class UartService(dbus.service.Object):
     def __init__(self, bus, index):
@@ -104,13 +125,13 @@ class UartService(dbus.service.Object):
         super().__init__(bus, self.path)
         tx_characteristic = UartTxCharacteristic(bus, 0, self)
         self.characteristics.extend([tx_characteristic, UartRxCharacteristic(bus, 1, self)])
+
     def get_properties(self):
         return {GATT_SERVICE_IFACE: {'UUID': self.uuid, 'Primary': self.primary, 'Characteristics': dbus.Array([c.get_path() for c in self.characteristics], signature='o')}}
     def get_path(self): return dbus.ObjectPath(self.path)
     @dbus.service.method(DBUS_PROP_IFACE, in_signature='s', out_signature='a{sv}')
     def GetAll(self, interface):
-        if interface != GATT_SERVICE_IFACE:
-            raise dbus.exceptions.DBusException('org.freedesktop.DBus.Error.InvalidArgs')
+        if interface != GATT_SERVICE_IFACE: raise dbus.exceptions.DBusException('org.freedesktop.DBus.Error.InvalidArgs')
         return self.get_properties()[GATT_SERVICE_IFACE]
 
 class BleApplication(dbus.service.Object):
@@ -128,70 +149,59 @@ class BleApplication(dbus.service.Object):
 
 class BleAdvertisement(dbus.service.Object):
     def __init__(self, bus, index):
-        self.path = f"/org/bluez/advertisement{index}"
-        self.bus = bus
-        self.ad_type = "peripheral"
-        self.service_uuids = [UART_SVC_UUID]
-        self.local_name = "LC150-TPMS"
+        self.path, self.bus, self.ad_type, self.service_uuids, self.local_name = f"/org/bluez/advertisement{index}", bus, "peripheral", [UART_SVC_UUID], "LC150-TPMS"
         super().__init__(bus, self.path)
-
-    def get_path(self):
-        return dbus.ObjectPath(self.path)
-
+    def get_path(self): return dbus.ObjectPath(self.path)
     def get_properties(self):
-        return {
-            LE_ADVERTISEMENT_IFACE: {
-                'Type': self.ad_type,
-                'ServiceUUIDs': dbus.Array(self.service_uuids, signature='s'),
-                'LocalName': dbus.String(self.local_name),
-            }
-        }
-
+        return {LE_ADVERTISEMENT_IFACE: {'Type': self.ad_type, 'ServiceUUIDs': dbus.Array(self.service_uuids, signature='s'), 'LocalName': dbus.String(self.local_name)}}
     @dbus.service.method(DBUS_PROP_IFACE, in_signature='s', out_signature='a{sv}')
     def GetAll(self, interface):
-        if interface != LE_ADVERTISEMENT_IFACE:
-            raise dbus.exceptions.DBusException('org.freedesktop.DBus.Error.InvalidArgs')
+        if interface != LE_ADVERTISEMENT_IFACE: raise dbus.exceptions.DBusException('org.freedesktop.DBus.Error.InvalidArgs')
         return self.get_properties()[LE_ADVERTISEMENT_IFACE]
-
     @dbus.service.method(LE_ADVERTISEMENT_IFACE, in_signature='', out_signature='')
-    def Release(self):
-        pass
+    def Release(self): pass
 
 def handle_incoming_command(cmd):
     global APP_STATE, SYSTEM_MODE, wizard_step_idx
     with state_lock:
         if cmd.startswith("PROFILE:SELECT:"):
             pid = cmd.split(":")[-1]
-            if pid in config_data["profiles"]:
+            if pid in config_data.get("profiles", {}):
                 config_data["active_profile"] = pid
                 SYSTEM_MODE = "HIGHWAY"
                 reset_tire_data(); persist_config()
-        elif cmd.startswith("PROFILE:CREATE:"):
-            try:
-                new_p = json.loads(cmd[len("PROFILE:CREATE:"):])
-                config_data["profiles"][new_p["id"]] = new_p
-                config_data["active_profile"] = new_p["id"]
-                reset_tire_data(); persist_config()
-                APP_STATE, wizard_step_idx = "WIZARD", 0
-                wizard_bonded.clear()
-            except Exception as e: logging.error(f"JSON err: {e}")
-        elif cmd == "WIZARD:START": APP_STATE, wizard_step_idx = "WIZARD", 0; wizard_bonded.clear()
-        elif cmd == "WIZARD:CANCEL": APP_STATE = "MONITOR"
+                logging.info(f"Switched profile to: {pid}")
+
+        elif cmd == "WIZARD:START":
+            APP_STATE = "WIZARD"
+            wizard_step_idx = 0
+            wizard_bonded.clear()
+            logging.info("Pairing Wizard Started")
+
+        elif cmd == "WIZARD:CANCEL":
+            APP_STATE = "MONITOR"
+            logging.info("Pairing Wizard Cancelled")
+
         elif cmd == "SIM:TOGGLE_MODE":
             SYSTEM_MODE = "OFFROAD" if SYSTEM_MODE == "HIGHWAY" else "HIGHWAY"
             prof = get_active_profile()
             tgt = 18.0 if SYSTEM_MODE == "OFFROAD" else prof.get("thresholds", {}).get("target_psi", 35.0)
             for w in tires:
                 if w != "SP": tires[w]["psi"] = tgt + round(random.uniform(-0.3, 0.3), 1)
+            logging.info(f"Toggled Mode to: {SYSTEM_MODE}")
+
         elif cmd == "SIM:DEFLATE_STEP":
             if APP_STATE == "WIZARD":
                 wheels = get_active_profile().get("wheels", [])
                 if wizard_step_idx < len(wheels):
-                    wizard_bonded[wheels[wizard_step_idx]] = f"0{random.randint(10,99)}x{random.randint(10,99)}"
+                    w = wheels[wizard_step_idx]
+                    wizard_bonded[w] = f"0{random.randint(10,99)}x{random.randint(10,99)}"
                     wizard_step_idx += 1
+                    logging.info(f"Bonded wheel {w}. Next index: {wizard_step_idx}")
                     if wizard_step_idx >= len(wheels):
                         get_active_profile()["sensors"] = wizard_bonded
                         persist_config(); reset_tire_data(); APP_STATE = "MONITOR"
+                        logging.info("Wizard complete. Active profile updated.")
     broadcast_telemetry()
 
 def broadcast_telemetry():
@@ -199,12 +209,32 @@ def broadcast_telemetry():
     with state_lock:
         prof = get_active_profile()
         p_list = [{"id": k, "name": v.get("name", k), "layout": v.get("layout", "4W")} for k, v in config_data.get("profiles", {}).items()]
+        tires_clean = {w: {"psi": round(tires[w]["psi"], 1), "temp": tires[w]["temp"]} for w in tires}
+        
         if APP_STATE == "WIZARD":
             wheels = prof.get("wheels", [])
-            payload = {"state": "WIZARD", "profile_id": config_data.get("active_profile"), "step": wheels[wizard_step_idx] if wizard_step_idx < len(wheels) else "DONE", "step_num": wizard_step_idx + 1, "total_steps": len(wheels), "asset": prof.get("asset", "lc150_2015"), "layout": prof.get("layout", "5W")}
+            payload = {
+                "state": "WIZARD",
+                "profile": config_data.get("active_profile"),
+                "step": wheels[wizard_step_idx] if wizard_step_idx < len(wheels) else "DONE",
+                "step_num": wizard_step_idx + 1,
+                "total_steps": len(wheels),
+                "asset": prof.get("asset", "lc150_2015"),
+                "layout": prof.get("layout", "5W")
+            }
         else:
-            payload = {"state": "MONITOR", "mode": SYSTEM_MODE, "active_profile": config_data.get("active_profile"), "profile_name": prof.get("name", "Vehicle"), "asset": prof.get("asset", "lc150_2015"), "layout": prof.get("layout", "5W"), "profiles_list": p_list, "sdr": sdr_healthy, "tires": tires}
-    tx_characteristic.send_notification(json.dumps(payload) + "\n")
+            payload = {
+                "state": "MONITOR",
+                "mode": SYSTEM_MODE,
+                "profile": config_data.get("active_profile"),
+                "name": prof.get("name", "Vehicle"),
+                "asset": prof.get("asset", "lc150_2015"),
+                "layout": prof.get("layout", "5W"),
+                "profiles": p_list,
+                "tires": tires_clean
+            }
+    msg = json.dumps(payload) + "\n"
+    tx_characteristic.send_notification(msg)
 
 def mock_telemetry_loop():
     while True:
@@ -229,7 +259,7 @@ def main():
     ad_manager.RegisterAdvertisement(ad.get_path(), {}, reply_handler=lambda: logging.info("BLE Advertising Active"), error_handler=lambda e: logging.error(f"Ad Error: {e}"))
 
     threading.Thread(target=mock_telemetry_loop, daemon=True).start()
-    logging.info("Daemon operational, broadcasting as LC150-TPMS")
+    logging.info("Daemon ready for BLE streaming.")
     GLib.MainLoop().run()
 
 if __name__ == "__main__": main()

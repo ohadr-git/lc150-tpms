@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b0e14">
   <title>LC150 TPMS</title>
   <style>
     :root {
@@ -12,72 +14,43 @@
       --text-main: #ffffff;
       --text-muted: #718096;
       --ok: #22c55e;
-      --warn: #eab308;
-      --alert: #ef4444;
       --offroad: #00b4ff;
+      --alert: #ef4444;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     
     html, body {
       background: var(--bg);
       color: var(--text-main);
-      height: 100%;
       height: 100dvh;
       overflow-x: hidden;
       overflow-y: auto;
     }
 
-    body {
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
+    body { display: flex; flex-direction: column; justify-content: space-between; }
 
     header {
-      background: var(--card-bg);
-      height: 48px;
-      min-height: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      border-bottom: 1px solid var(--card-border);
-      flex-shrink: 0;
+      background: var(--card-bg); height: 48px; min-height: 48px; display: flex;
+      align-items: center; justify-content: space-between; padding: 0 16px;
+      border-bottom: 1px solid var(--card-border); flex-shrink: 0;
     }
-    .brand { font-size: 13px; font-weight: 800; letter-spacing: 0.5px; }
+    .brand { font-size: 13px; font-weight: 800; }
     .status-badge { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; }
     .status-connected { background: rgba(34, 197, 94, 0.2); color: var(--ok); }
     .status-disconnected { background: rgba(239, 68, 68, 0.2); color: var(--alert); }
 
     .main-grid {
-      flex: 1;
-      display: grid;
-      grid-template-columns: 1fr 85px 1fr;
-      grid-template-rows: 1fr 1fr auto;
-      gap: 8px;
-      padding: 10px;
-      max-width: 480px;
-      margin: 0 auto;
-      width: 100%;
-      align-items: center;
-      min-height: 0;
+      flex: 1; display: grid; grid-template-columns: 1fr 85px 1fr; grid-template-rows: 1fr 1fr auto;
+      gap: 8px; padding: 10px; max-width: 480px; margin: 0 auto; width: 100%; align-items: center; min-height: 0;
     }
     
     .tire-card {
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 8px 10px;
-      border: 2px solid var(--card-border);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      min-height: 80px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      background: var(--card-bg); border-radius: 12px; padding: 8px 10px; border: 2px solid var(--card-border);
+      display: flex; flex-direction: column; justify-content: space-between; min-height: 80px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: border-color 0.2s, box-shadow 0.2s;
     }
     .tire-card.ok { border-color: var(--ok); }
-    .tire-card.warn { border-color: var(--warn); }
-    .tire-card.alert { border-color: var(--alert); }
-    .tire-card.offroad { border-color: var(--offroad); box-shadow: 0 0 10px rgba(0, 180, 255, 0.25); }
+    .tire-card.offroad { border-color: var(--offroad); box-shadow: 0 0 12px rgba(0, 180, 255, 0.35); }
 
     .card-hdr { font-size: 10px; font-weight: 700; color: var(--text-muted); }
     .card-val { font-size: 26px; font-weight: 900; line-height: 1.1; margin: 2px 0; }
@@ -95,40 +68,20 @@
     .chassis-center img { width: 100%; max-height: 190px; object-fit: contain; }
 
     footer {
-      background: var(--card-bg);
-      padding: 12px 14px 18px 14px;
-      display: flex;
-      gap: 8px;
-      border-top: 1px solid var(--card-border);
-      flex-shrink: 0;
-      position: sticky;
-      bottom: 0;
-      z-index: 20;
+      background: var(--card-bg); padding: 10px 12px 16px 12px; display: flex; gap: 6px;
+      border-top: 1px solid var(--card-border); flex-shrink: 0; position: sticky; bottom: 0; z-index: 20;
     }
     button {
-      flex: 1;
-      background: #232d3f;
-      border: none;
-      color: white;
-      padding: 12px 6px;
-      font-size: 12px;
-      font-weight: 700;
-      border-radius: 8px;
-      cursor: pointer;
+      flex: 1; background: #232d3f; border: none; color: white; padding: 10px 4px;
+      font-size: 11px; font-weight: 700; border-radius: 8px; cursor: pointer;
     }
-    button.btn-primary { background: #22c55e; color: #000; font-size: 13px; font-weight: 800; }
+    button.btn-primary { background: #22c55e; color: #000; font-weight: 800; }
     button.btn-mock { background: #3b82f6; }
+    button.btn-offroad { background: #00b4ff; color: #000; }
 
     .modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(11, 14, 20, 0.95);
-      z-index: 100;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+      display: none; position: fixed; inset: 0; background: rgba(11, 14, 20, 0.95);
+      z-index: 100; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
     }
     .modal.active { display: flex; }
     .modal-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 20px; width: 100%; max-width: 340px; text-align: center; }
@@ -137,15 +90,15 @@
 <body>
 
   <header>
-    <div class="brand" id="brand-lbl">LC150 TPMS | HIGHWAY</div>
+    <div class="brand" id="brand-lbl">LC150 TPMS | CONNECTING...</div>
     <div class="status-badge status-disconnected" id="ble-badge">DISCONNECTED</div>
   </header>
 
   <div class="main-grid" id="grid">
     <div class="tire-card ok" id="card-FL">
       <div class="card-hdr">FRONT LEFT</div>
-      <div class="card-val"><span id="val-FL">34.2</span><span class="card-unit">PSI</span></div>
-      <div class="card-ftr"><span id="temp-FL">24</span>°C</div>
+      <div class="card-val"><span id="val-FL">--</span><span class="card-unit">PSI</span></div>
+      <div class="card-ftr"><span id="temp-FL">--</span>°C</div>
     </div>
 
     <div class="chassis-center">
@@ -154,64 +107,73 @@
 
     <div class="tire-card ok" id="card-FR">
       <div class="card-hdr">FRONT RIGHT</div>
-      <div class="card-val"><span id="val-FR">34.0</span><span class="card-unit">PSI</span></div>
-      <div class="card-ftr"><span id="temp-FR">23</span>°C</div>
+      <div class="card-val"><span id="val-FR">--</span><span class="card-unit">PSI</span></div>
+      <div class="card-ftr"><span id="temp-FR">--</span>°C</div>
     </div>
 
     <div class="tire-card ok" id="card-RL">
       <div class="card-hdr">REAR LEFT</div>
-      <div class="card-val"><span id="val-RL">38.1</span><span class="card-unit">PSI</span></div>
-      <div class="card-ftr"><span id="temp-RL">25</span>°C</div>
+      <div class="card-val"><span id="val-RL">--</span><span class="card-unit">PSI</span></div>
+      <div class="card-ftr"><span id="temp-RL">--</span>°C</div>
     </div>
 
     <div class="tire-card ok" id="card-RR">
       <div class="card-hdr">REAR RIGHT</div>
-      <div class="card-val"><span id="val-RR">38.0</span><span class="card-unit">PSI</span></div>
-      <div class="card-ftr"><span id="temp-RR">25</span>°C</div>
+      <div class="card-val"><span id="val-RR">--</span><span class="card-unit">PSI</span></div>
+      <div class="card-ftr"><span id="temp-RR">--</span>°C</div>
     </div>
 
     <div class="tire-card ok" id="card-SP">
       <div class="card-hdr">SPARE</div>
-      <div class="card-val"><span id="val-SP">38.5</span><span class="card-unit">PSI</span></div>
-      <div class="card-ftr"><span id="temp-SP">21</span>°C</div>
+      <div class="card-val"><span id="val-SP">--</span><span class="card-unit">PSI</span></div>
+      <div class="card-ftr"><span id="temp-SP">--</span>°C</div>
     </div>
   </div>
 
   <footer>
     <button class="btn-primary" id="btn-ble">CONNECT</button>
     <button id="btn-profiles">PROFILES</button>
-    <button class="btn-mock" id="btn-sim-mode">SIM: OFF-ROAD</button>
+    <button class="btn-offroad" id="btn-sim-mode">OFF-ROAD</button>
+    <button class="btn-mock" id="btn-pair">PAIR</button>
   </footer>
 
+  <!-- PROFILES MODAL -->
   <div class="modal" id="modal-profiles">
     <div class="modal-box">
       <h3 style="margin-bottom: 12px;">SELECT VEHICLE</h3>
-      <div id="profile-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;"></div>
+      <div id="profile-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+        <p style="color:var(--text-muted); font-size:12px;">Waiting for connection...</p>
+      </div>
       <button id="btn-close-prof" style="width: 100%;">CLOSE</button>
     </div>
   </div>
 
+  <!-- PAIRING WIZARD MODAL -->
   <div class="modal" id="modal-wiz">
     <div class="modal-box">
       <h4 style="color: var(--offroad); margin-bottom: 6px;">PAIRING WIZARD</h4>
-      <h2 id="wiz-step-name" style="margin-bottom: 12px;">FRONT LEFT</h2>
-      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Bleed ~2-3 PSI or tap simulate step below:</p>
-      <button class="btn-mock" id="btn-sim-step" style="width: 100%; margin-bottom: 8px;">SIMULATE DEFLATION</button>
+      <h2 id="wiz-step-name" style="margin-bottom: 8px;">FRONT LEFT</h2>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Bleed ~2-3 PSI from this tire or tap button below:</p>
+      <button class="btn-primary" id="btn-sim-step" style="width: 100%; margin-bottom: 10px; padding: 12px 0;">SIMULATE SENSOR BLEED</button>
       <button id="btn-wiz-cancel" style="width: 100%; background: var(--alert);">CANCEL</button>
     </div>
   </div>
 
   <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+
     const UART_SVC = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
     const UART_RX  = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
     const UART_TX  = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
 
     let rxChar = null;
-    let buffer = "";
+    let streamBuffer = "";
 
     async function toggleConnect() {
       if (!navigator.bluetooth) {
-        alert("Web Bluetooth is disabled. Please verify chrome://flags/#unsafely-treat-insecure-origin-as-secure includes your Pi IP.");
+        alert("Web Bluetooth not available in this context.");
         return;
       }
       try {
@@ -226,13 +188,22 @@
         const txChar = await service.getCharacteristic(UART_TX);
 
         await txChar.startNotifications();
+        streamBuffer = "";
+        
         txChar.addEventListener("characteristicvaluechanged", (e) => {
-          buffer += new TextDecoder().decode(e.target.value);
-          if (buffer.includes("\n")) {
-            const lines = buffer.split("\n");
-            buffer = lines.pop();
-            for (const line of lines) {
-              if (line.trim()) render(JSON.parse(line.trim()));
+          const chunk = new TextDecoder().decode(e.target.value);
+          streamBuffer += chunk;
+          
+          let idx;
+          while ((idx = streamBuffer.indexOf("\n")) >= 0) {
+            const line = streamBuffer.substring(0, idx).trim();
+            streamBuffer = streamBuffer.substring(idx + 1);
+            if (line) {
+              try {
+                render(JSON.parse(line));
+              } catch (err) {
+                console.error("Malformed JSON:", err, line);
+              }
             }
           }
         });
@@ -240,8 +211,9 @@
         document.getElementById("ble-badge").className = "status-badge status-connected";
         document.getElementById("ble-badge").textContent = "LIVE (BLE)";
         document.getElementById("btn-ble").textContent = "DISCONNECT";
+        sendCmd("PING");
       } catch (err) {
-        console.error("BLE fail:", err);
+        console.error("BLE Connect failed:", err);
       }
     }
 
@@ -254,37 +226,37 @@
       document.getElementById("modal-wiz").classList.remove("active");
 
       const brand = document.getElementById("brand-lbl");
-      brand.textContent = `${data.profile_name.toUpperCase()} | ${data.mode}`;
+      const name = data.name || data.profile_name || "VEHICLE";
+      brand.textContent = `${name.toUpperCase()} | ${data.mode}`;
       brand.style.color = data.mode === "OFFROAD" ? "var(--offroad)" : "var(--text-main)";
 
-      document.getElementById("chassis-img").src = `assets/${data.asset}.svg`;
+      if (data.asset) document.getElementById("chassis-img").src = `assets/${data.asset}.svg`;
 
       const cardSP = document.getElementById("card-SP");
-      if (data.layout === "5W") {
-        cardSP.style.display = "flex";
-      } else {
-        cardSP.style.display = "none";
-      }
+      cardSP.style.display = data.layout === "5W" ? "flex" : "none";
 
-      for (const [w, t] of Object.entries(data.tires)) {
-        const valEl = document.getElementById(`val-${w}`);
-        const tempEl = document.getElementById(`temp-${w}`);
-        const card = document.getElementById(`card-${w}`);
-        if (valEl) valEl.textContent = t.psi.toFixed(1);
-        if (tempEl) tempEl.textContent = t.temp;
-        if (card) {
-          card.className = data.mode === "OFFROAD" ? "tire-card offroad" : "tire-card ok";
+      if (data.tires) {
+        for (const [w, t] of Object.entries(data.tires)) {
+          const valEl = document.getElementById(`val-${w}`);
+          const tempEl = document.getElementById(`temp-${w}`);
+          const card = document.getElementById(`card-${w}`);
+          if (valEl) valEl.textContent = t.psi.toFixed(1);
+          if (tempEl) tempEl.textContent = t.temp;
+          if (card) card.className = data.mode === "OFFROAD" ? "tire-card offroad" : "tire-card ok";
         }
       }
 
-      if (data.profiles_list) {
+      const profList = data.profiles || data.profiles_list;
+      if (profList) {
         const list = document.getElementById("profile-list");
         list.innerHTML = "";
-        data.profiles_list.forEach(p => {
+        profList.forEach(p => {
           const btn = document.createElement("button");
-          btn.textContent = p.name + (p.id === data.active_profile ? " (ACTIVE)" : "");
-          btn.style.background = p.id === data.active_profile ? "var(--offroad)" : "#232d3f";
-          btn.style.color = p.id === data.active_profile ? "#000" : "#fff";
+          const isActive = (p.id === data.profile || p.id === data.active_profile);
+          btn.textContent = p.name + (isActive ? " (ACTIVE)" : "");
+          btn.style.background = isActive ? "var(--offroad)" : "#232d3f";
+          btn.style.color = isActive ? "#000" : "#fff";
+          btn.style.padding = "12px 8px";
           btn.onclick = () => {
             sendCmd(`PROFILE:SELECT:${p.id}`);
             document.getElementById("modal-profiles").classList.remove("active");
@@ -295,13 +267,24 @@
     }
 
     async function sendCmd(cmd) {
-      if (rxChar) await rxChar.writeValue(new TextEncoder().encode(cmd + "\n"));
+      if (!rxChar) return;
+      try {
+        const payload = new TextEncoder().encode(cmd + "\n");
+        if (rxChar.writeValueWithoutResponse) {
+          await rxChar.writeValueWithoutResponse(payload);
+        } else {
+          await rxChar.writeValue(payload);
+        }
+      } catch (err) {
+        console.error("sendCmd err:", err);
+      }
     }
 
     document.getElementById("btn-ble").onclick = toggleConnect;
     document.getElementById("btn-profiles").onclick = () => document.getElementById("modal-profiles").classList.add("active");
     document.getElementById("btn-close-prof").onclick = () => document.getElementById("modal-profiles").classList.remove("active");
     document.getElementById("btn-sim-mode").onclick = () => sendCmd("SIM:TOGGLE_MODE");
+    document.getElementById("btn-pair").onclick = () => sendCmd("WIZARD:START");
     document.getElementById("btn-sim-step").onclick = () => sendCmd("SIM:DEFLATE_STEP");
     document.getElementById("btn-wiz-cancel").onclick = () => sendCmd("WIZARD:CANCEL");
   </script>
